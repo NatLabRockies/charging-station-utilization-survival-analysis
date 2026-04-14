@@ -4,10 +4,12 @@
 # Contact: Robin.Steuteville@nlr.gov
 # Corresponding Author: Ranjit Desai (Ranjit.Desai@nlr.gov)
 # This script runs a Kaplan-Meier survival analysis on the sample data provided, and
-# returns the resulting survival curves as plots. This same analysis, with more data,
-# was used in the paper.
+# returns the resulting survival curves as plots. This analysis, with more data,
+# was used in the paper. However, note that this analysis doesn't include
+# the confidence intervals contained in the paper, since those used clustered
+# standard errors, which required confidential station ids.
 # Note: this file is set up to access the data located in the "data" subdirectory
-# and save the resulting plots to a "venue_groups_survival_analysis"
+# and save the resulting plots to a "day_type_and_time_survival_analysis_plots"
 # subdirectory, which it will create if the directory does not exist.
 
 require("rstudioapi")
@@ -17,11 +19,9 @@ setwd(dirname(current_path))
 require("formatR")
 require("tidyr")
 require("ggplot2")
-
-# for survival analysis
 library(survival)
 library(survminer)
-library(dplyr)
+library(cowplot)
 
 ################################################################################################
 ################################################################################################
@@ -72,6 +72,7 @@ surv_all_DC <- Surv(time = DC_df$connected_hours, event = DC_df$censored)
 
 # Subsetting DC dataframe for day type analysis and creating Surv object
 DC_day_type_df <- subset(DC_df, day_type %in% day_types)
+DC_day_type_df$day_type <- factor(DC_day_type_df$day_type, levels = day_types)
 surv_day_type_DC <- Surv(time = DC_day_type_df$connected_hours, event = DC_day_type_df$censored)
 
 # Reading in L2 dataframe
@@ -98,6 +99,7 @@ surv_all_L2 <- Surv(time = L2_df$connected_hours, event = L2_df$censored)
 
 # Subsetting L2 dataframe for day type analysis and creating Surv object
 L2_day_type_df <- subset(L2_df, day_type %in% day_types)
+L2_day_type_df$day_type <- factor(L2_day_type_df$day_type, levels = day_types)
 surv_day_type_L2 <- Surv(time = L2_day_type_df$connected_hours, event = L2_day_type_df$censored)
 
 # Defining plot colors
@@ -109,6 +111,10 @@ day_type_colors <- c("Weekday" = "salmon", "Weekend" = "skyblue")
 
 day_type_colors_updated <- c("salmon", "skyblue")
 
+title_size <- 14.8
+smaller_fontsize <- 13.5
+pval_fontsize <- 4.2
+
 ################################################################################################
 ################################################################################################
 # Plots
@@ -119,25 +125,25 @@ L2_plot_theme <- function(base_size) {
   theme_classic(base_size = base_size, base_family = "Helvetica") %+replace%
     theme(
       axis.text = element_text(size = rel(0.9)),
-      plot.title = element_text(size = 35, hjust = 0.5, vjust = 3, face = "bold", color = "Black"),
+      plot.title = element_text(size = title_size, hjust = 0.5, vjust = 3, face = "bold", color = "Black"),
       axis.ticks.x.bottom = element_line(colour = "Black"),
       axis.ticks.y.left = element_line(colour = "Black"),
-      axis.text.x = element_text(size = 32, color = "Black"),
-      axis.text.y = element_text(size = 32),
-      axis.title.x = element_text(size = 32, hjust = 0.5, color = "Black"),
-      axis.title.y = element_text(size = 32, angle = 90, hjust = 0.5, vjust = 3),
-      legend.text = element_text(size = 32),
+      axis.text.x = element_text(size = smaller_fontsize, color = "Black"),
+      axis.text.y = element_text(size = smaller_fontsize),
+      axis.title.x = element_text(size = smaller_fontsize, hjust = 0.5, color = "Black"),
+      axis.title.y = element_text(size = smaller_fontsize, angle = 90, hjust = 0.5, vjust = 3),
+      legend.text = element_text(size = smaller_fontsize),
       legend.key = element_blank(),
       legend.title = element_blank(),
       panel.background = element_blank(),
-      legend.background = element_blank(),
+      legend.background = element_rect(fill = "white", colour = "black", size = 0.5),
       panel.border = element_blank(),
-      panel.grid.major = element_line(colour = "grey70", size = 0.2),
-      panel.grid.minor = element_line(colour = "grey70", size = 0.5),
+      panel.grid.major = element_line(colour = "grey70", size = 0.3),
+      panel.grid.minor = element_line(colour = "grey70", size = 0.6),
       strip.background = element_rect(fill = "grey70", colour = "grey70", size = 0.2),
-      axis.line.x = element_line(color = "Black", size = 2.5),
-      axis.line.y = element_line(color = "Black", size = 2.5),
-      plot.margin = unit(c(20, 20, 20, 20), "pt")
+      axis.line.x = element_line(color = "Black", size = 1.06),
+      axis.line.y = element_line(color = "Black", size = 1.06),
+      plot.margin = unit(c(14.0, 6.0, 6.0, 6.0), "pt")
     )
 }
 
@@ -145,25 +151,25 @@ DC_plot_theme <- function(base_size) {
   theme_classic(base_size = base_size, base_family = "Helvetica") %+replace%
     theme(
       axis.text = element_text(size = rel(0.8)),
-      plot.title = element_text(size = 35, hjust = 0.5, vjust = 3, face = "bold", color = "dimgray"),
-      axis.ticks.x.bottom = element_line(colour = "dimgray"),
-      axis.ticks.y.left = element_line(colour = "dimgray"),
-      axis.text.x = element_text(size = 32, color = "dimgray"),
-      axis.text.y = element_text(size = 32),
-      axis.title.x = element_text(size = 32, hjust = 0.5, color = "dimgray"),
-      axis.title.y = element_text(size = 32, angle = 90, hjust = 0.5, vjust = 3),
-      legend.text = element_text(size = 32, color = "dimgray"),
+      plot.title = element_text(size = title_size, hjust = 0.5, vjust = 3, face = "bold", color = "Black"),
+      axis.ticks.x.bottom = element_line(colour = "Black"),
+      axis.ticks.y.left = element_line(colour = "Black"),
+      axis.text.x = element_text(size = smaller_fontsize, color = "Black"),
+      axis.text.y = element_text(size = smaller_fontsize),
+      axis.title.x = element_text(size = smaller_fontsize, hjust = 0.5, color = "Black"),
+      axis.title.y = element_text(size = smaller_fontsize, angle = 90, hjust = 0.5, vjust = 3),
+      legend.text = element_text(size = smaller_fontsize, color = "Black"),
       legend.key = element_blank(),
       legend.title = element_blank(),
       panel.background = element_blank(),
-      legend.background = element_blank(),
+      legend.background = element_rect(fill = "white", colour = "black", size = 0.5),
       panel.border = element_blank(),
-      panel.grid.major = element_line(colour = "grey80", size = 0.2),
-      panel.grid.minor = element_line(colour = "grey80", size = 0.5),
-      strip.background = element_rect(fill = "grey80", colour = "grey80", size = 0.2),
-      axis.line.x.bottom = element_line(color = "dimgray", size = 2.5),
-      axis.line.y.left = element_line(color = "dimgray", size = 2.5),
-      plot.margin = unit(c(20, 20, 20, 20), "pt")
+      panel.grid.major = element_line(colour = "grey70", size = 0.3),
+      panel.grid.minor = element_line(colour = "grey70", size = 0.6),
+      strip.background = element_rect(fill = "grey70", colour = "grey70", size = 0.2),
+      axis.line.x = element_line(color = "Black", size = 1.06),
+      axis.line.y = element_line(color = "Black", size = 1.06),
+      plot.margin = unit(c(14.0, 6.0, 6.0, 6.0), "pt")
     )
 }
 
@@ -174,29 +180,40 @@ DC_plot_theme <- function(base_size) {
 # DC
 fit_DC <- survfit(surv_all_DC ~ six_hour_blocks, data = DC_df)
 names(fit_DC$strata) <- gsub("six_hour_blocks=", "", names(fit_DC$strata))
+surv_diff_DC_time <- survdiff(surv_all_DC ~ six_hour_blocks, data = DC_df)
+pval_DC_time <- pchisq(surv_diff_DC_time$chisq, length(surv_diff_DC_time$n) - 1, lower.tail = FALSE)
+pval_text_DC_time <- ifelse(pval_DC_time < 0.001, "p < 0.001", paste("p =", signif(pval_DC_time, 2)))
 surv_plot_DC_time <- ggsurvplot(fit_DC,
   xlab = "DC Connected Time (hours)",
-  legend = c(0.75, 0.8),
+  legend = c(0.75, 0.85),
   break.x.by = 0.25,
   palette = time_colors_updated,
   xlim = c(0., 1.5),
-  size = 2,
-  ggtheme = DC_plot_theme(base_size = 24)
-)$plot +
-  theme(axis.text.y = element_text(color = "white"), axis.title.y = element_text(color = "white"))
+  size = 1.8,
+  ggtheme = DC_plot_theme(base_size = 10.2)
+)
+surv_plot_DC_time$plot <- surv_plot_DC_time$plot +
+  annotate("rect", xmin = 0.02, xmax = 0.35, ymin = 0.02, ymax = 0.12, fill = "white", color = "black", size = 0.5) +
+  annotate("text", x = 0.185, y = 0.07, label = pval_text_DC_time, size = pval_fontsize, hjust = 0.5)
 
 # L2
 fit_L2 <- survfit(surv_all_L2 ~ six_hour_blocks, data = L2_df)
 names(fit_L2$strata) <- gsub("six_hour_blocks=", "", names(fit_L2$strata))
+surv_diff_L2_time <- survdiff(surv_all_L2 ~ six_hour_blocks, data = L2_df)
+pval_L2_time <- pchisq(surv_diff_L2_time$chisq, length(surv_diff_L2_time$n) - 1, lower.tail = FALSE)
+pval_text_L2_time <- ifelse(pval_L2_time < 0.001, "p < 0.001", paste("p =", signif(pval_L2_time, 2)))
 surv_plot_L2_time <- ggsurvplot(fit_L2,
   xlab = "L2 Connected Time (hours)",
-  legend = c(0.75, 0.8),
+  legend = c(0.75, 0.85),
   break.x.by = 1.,
   xlim = c(0., 12.),
-  size = 2,
+  size = 1.8,
   palette = time_colors_updated,
-  ggtheme = L2_plot_theme(base_size = 24)
-)$plot
+  ggtheme = L2_plot_theme(base_size = 10.2)
+)
+surv_plot_L2_time$plot <- surv_plot_L2_time$plot +
+  annotate("rect", xmin = 0.2, xmax = 2.8, ymin = 0.02, ymax = 0.12, fill = "white", color = "black", size = 0.5) +
+  annotate("text", x = 1.5, y = 0.07, label = pval_text_L2_time, size = pval_fontsize, hjust = 0.5)
 
 ################################################
 # survival analysis by day type
@@ -205,35 +222,52 @@ surv_plot_L2_time <- ggsurvplot(fit_L2,
 # L2
 fit_L2_day_type <- survfit(surv_day_type_L2 ~ day_type, data = L2_day_type_df)
 names(fit_L2_day_type$strata) <- gsub("day_type=", "", names(fit_L2_day_type$strata))
+surv_diff_L2_day_type <- survdiff(surv_day_type_L2 ~ day_type, data = L2_day_type_df)
+pval_L2_day_type <- pchisq(surv_diff_L2_day_type$chisq, length(surv_diff_L2_day_type$n) - 1, lower.tail = FALSE)
+pval_text_L2_day_type <- ifelse(pval_L2_day_type < 0.001, "p < 0.001", paste("p =", signif(pval_L2_day_type, 2)))
 surv_plot_L2_day_type <- ggsurvplot(fit_L2_day_type,
   title = "Level 2",
   xlab = "L2 Connected Time (hours)",
   legend = c(0.75, 0.8),
   break.x.by = 1.,
   xlim = c(0., 12.),
-  size = 2,
+  size = 1.8,
   palette = day_type_colors_updated,
-  ggtheme = L2_plot_theme(base_size = 24)
-)$plot +
-  theme(axis.text.x = element_text(color = "white"), axis.title.x = element_text(color = "white"))
+  ggtheme = L2_plot_theme(base_size = 10.2)
+)
+surv_plot_L2_day_type$plot <- surv_plot_L2_day_type$plot +
+  annotate("rect", xmin = 0.2, xmax = 2.8, ymin = 0.02, ymax = 0.12, fill = "white", color = "black", size = 0.5) +
+  annotate("text", x = 1.5, y = 0.07, label = pval_text_L2_day_type, size = pval_fontsize, hjust = 0.5)
 
 # DC
 fit_DC_day_type <- survfit(surv_day_type_DC ~ day_type, data = DC_day_type_df)
 names(fit_DC_day_type$strata) <- gsub("day_type=", "", names(fit_DC_day_type$strata))
+surv_diff_DC_day_type <- survdiff(surv_day_type_DC ~ day_type, data = DC_day_type_df)
+pval_DC_day_type <- pchisq(surv_diff_DC_day_type$chisq, length(surv_diff_DC_day_type$n) - 1, lower.tail = FALSE)
+pval_text_DC_day_type <- ifelse(pval_DC_day_type < 0.001, "p < 0.001", paste("p =", signif(pval_DC_day_type, 2)))
 surv_plot_DC_day_type <- ggsurvplot(fit_DC_day_type,
   title = "DC",
   xlab = "DC Connected Time (hours)",
   legend = c(0.75, 0.8),
   break.x.by = 0.25,
   xlim = c(0., 1.5),
-  size = 2,
+  size = 1.8,
   palette = day_type_colors_updated,
-  ggtheme = DC_plot_theme(base_size = 24)
-)$plot +
-  theme(axis.text.x = element_text(color = "white"), axis.title.x = element_text(color = "white"), axis.text.y = element_text(color = "white"), axis.title.y = element_text(color = "white"))
+  ggtheme = DC_plot_theme(base_size = 10.2)
+)
+surv_plot_DC_day_type$plot <- surv_plot_DC_day_type$plot +
+  annotate("rect", xmin = 0.02, xmax = 0.35, ymin = 0.02, ymax = 0.12, fill = "white", color = "black", size = 0.5) +
+  annotate("text", x = 0.185, y = 0.07, label = pval_text_DC_day_type, size = pval_fontsize, hjust = 0.5)
 
-combined_plot <- ggarrange(surv_plot_L2_day_type, surv_plot_DC_day_type, surv_plot_L2_time, surv_plot_DC_time,
-  ncol = 2, nrow = 2
+combined_plot <- plot_grid(
+  surv_plot_L2_day_type$plot,
+  surv_plot_DC_day_type$plot,
+  surv_plot_L2_time$plot,
+  surv_plot_DC_time$plot,
+  ncol = 2,
+  nrow = 2,
+  align = "hv",
+  axis = "tblr"
 )
 
-ggsave(plot = combined_plot, filename = paste("survival_curves_day_type_and_time_sample_data_", format(Sys.Date(), "%m_%d_%y"), ".jpeg"), path = outdir, width = 6912, height = 4468, dpi = 254, units = "px", device = "jpeg", limitsize = FALSE)
+ggsave(plot = combined_plot, filename = paste0("survival_curves_day_type_and_time_sample_data_", format(Sys.Date(), "%m_%d_%y"), ".jpeg"), path = outdir, width = 6912, height = 4600, dpi = 600, units = "px", device = "jpeg", limitsize = FALSE)
