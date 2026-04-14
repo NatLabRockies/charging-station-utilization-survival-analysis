@@ -1,0 +1,12 @@
+Column Definitions:
+charging_level: Charging level of the charger (either L2 or DC)
+start_date: Date the session started on
+year: Year the session started in
+start_time: Time the session started at
+six_hour_blocks: 6-hour block in which the charging session started ("12am - 5:59am", "6am - 11:59am", "12pm - 5:59pm", or "6pm - 11:59pm"). Used
+                 in survival analysis.
+day_type: The day type the session started on, either Weekday or Weekend
+venue: The venue type of the charging station.
+connected_mins: The length of time the session lasted for, including time spent connected but not charging.
+charging_mins: The number of minutes spent charging in the session.
+kwh: The amount of energy (in kWhs) received in the charging session.
