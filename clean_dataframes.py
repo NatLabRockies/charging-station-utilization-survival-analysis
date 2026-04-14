@@ -4,7 +4,7 @@ Objective: Script for cleaning and combining AFDC and EVW data. This sample scri
 is not meant to be run, since the data it cleans is confidential. Cleaned sample data
 with confidential information removed is available in the data folder, and can be
 used to run the survival_analysis_time_of_day_and_day_type.R script.
-Date: October 31, 2025
+Date: April 13, 2026
 Contact: Robin.Steuteville@nlr.gov
 Corresponding Author: Ranjit Desai (Ranjit.Desai@nlr.gov)
 Note: Anywhere the string "confidential" is used, this is replacing
